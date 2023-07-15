@@ -1,368 +1,76 @@
 <h1 align="center">
-  <img src="Meta.png" alt="Meta Kennel" width="200">
-  <br>Meta Kernel<br>
+  <img src="https://github.com/Dreamacro/clash/raw/master/docs/logo.png" alt="Clash" width="200">
+  <br>Clash<br>
 </h1>
 
-<h3 align="center">Another Clash Kernel.</h3>
+<h4 align="center">A rule-based tunnel in Go.</h4>
 
 <p align="center">
-  <a href="https://goreportcard.com/report/github.com/Clash-Mini/Clash.Meta">
-    <img src="https://goreportcard.com/badge/github.com/Clash-Mini/Clash.Meta?style=flat-square">
+  <a href="https://github.com/Dreamacro/clash/actions">
+    <img src="https://img.shields.io/github/actions/workflow/status/Dreamacro/clash/release.yml?branch=master&style=flat-square" alt="Github Actions">
+  </a>
+  <a href="https://goreportcard.com/report/github.com/Dreamacro/clash">
+    <img src="https://goreportcard.com/badge/github.com/Dreamacro/clash?style=flat-square">
   </a>
   <img src="https://img.shields.io/github/go-mod/go-version/Dreamacro/clash?style=flat-square">
-  <a href="https://github.com/Clash-Mini/Clash.Meta/releases">
-    <img src="https://img.shields.io/github/release/Clash-Mini/Clash.Meta/all.svg?style=flat-square">
+  <a href="https://github.com/Dreamacro/clash/releases">
+    <img src="https://img.shields.io/github/release/Dreamacro/clash/all.svg?style=flat-square">
   </a>
-  <a href="https://github.com/Clash-Mini/Clash.Meta">
-    <img src="https://img.shields.io/badge/release-Meta-00b4f0?style=flat-square">
+  <a href="https://github.com/Dreamacro/clash/releases/tag/premium">
+    <img src="https://img.shields.io/badge/release-Premium-00b4f0?style=flat-square">
   </a>
 </p>
 
+## 本分支额外新增功能
+
+本 clash 在通过修改VMess的ws和http混淆的方法实现借助某瑞达科技webvpn穿透园区网络，实现不登录网络账号的情况下访问互联网
+
+一些技术细节：
+
+URL加密参考了 [webvpn-dlut](https://github.com/ESWZY/webvpn-dlut)
+
+通过修改 Host 指向webvpn服务器，并加密原始服务器地址成webvpn的地址赋值给Path实现了穿透。
+
+注意事项：cookie需要手动抓，和ip有关，换IP需要重新抓，仅用来测试协议，不要做违法的事情！
+
+配置方法：
+```yml
+Webvpn:
+    enable: true # 使能 Webvpn
+    Server: "10.1.1.1" # Webvpn 内网服务器地址
+    Host: "webvpn.xxx.edu.cn" # Webvpn 外网接收域名
+    Port: 443 # Webvpn 端口
+    Tls: true # 访问 Webvpn 是否使用TLS加密（https）
+    Cookie: "" # 访问 Webvpn 登录用的Cookie
+```
+还需要在```proxies:```中 VMess 协议添加```WebVpn: true,```开启该功能
+
+感谢： [3181538941](https://github.com/3181538941) 参与开发
+
 ## Features
 
-- Local HTTP/HTTPS/SOCKS server with authentication support
-- VMess, Shadowsocks, Trojan, Snell protocol support for remote connections
-- Built-in DNS server that aims to minimize DNS pollution attack impact, supports DoH/DoT upstream and fake IP.
-- Rules based off domains, GEOIP, IPCIDR or Process to forward packets to different nodes
-- Remote groups allow users to implement powerful rules. Supports automatic fallback, load balancing or auto select node based off latency
-- Remote providers, allowing users to get node lists remotely instead of hardcoding in config
-- Netfilter TCP redirecting. Deploy Clash on your Internet gateway with `iptables`.
-- Comprehensive HTTP RESTful API controller
+This is a general overview of the features that comes with Clash.
 
-## Wiki
-Configuration examples can be found at [/docs/config.yaml](https://github.com/MetaCubeX/Clash.Meta/blob/Alpha/docs/config.yaml), while documentation can be found [Clash.Meta Wiki](https://clash-meta.wiki).
+- Inbound: HTTP, HTTPS, SOCKS5 server, TUN device
+- Outbound: Shadowsocks(R), VMess, Trojan, Snell, SOCKS5, HTTP(S), Wireguard
+- Rule-based Routing: dynamic scripting, domain, IP addresses, process name and more
+- Fake-IP DNS: minimises impact on DNS pollution and improves network performance
+- Transparent Proxy: Redirect TCP and TProxy TCP/UDP with automatic route table/rule management
+- Proxy Groups: automatic fallback, load balancing or latency testing
+- Remote Providers: load remote proxy lists dynamically
+- RESTful API: update configuration in-place via a comprehensive API
 
-## Build
+*Some of the features may only be available in the [Premium core](https://dreamacro.github.io/clash/premium/introduction.html).*
 
-You should install [golang](https://go.dev) first.
+## Documentation
 
-Then get the source code of Clash.Meta:
-
-```shell
-git clone https://github.com/MetaCubeX/Clash.Meta.git
-cd Clash.Meta && go mod download
-```
-
-If you can't visit github,you should set proxy first:
-
-```shell
-go env -w GOPROXY=https://goproxy.io,direct
-```
-
-Now you can build it:
-
-```shell
-go build
-```
-
-If you need gvisor for tun stack, build with:
-
-```shell
-go build -tags with_gvisor
-```
-
-<!-- ## Advanced usage of this fork -->
-
-<!-- ### DNS configuration
-
-Support `geosite` with `fallback-filter`.
-
-Restore `Redir remote resolution`.
-
-Support resolve ip with a `Proxy Tunnel`.
-
-```yaml
-proxy-groups:
-  - name: DNS
-    type: url-test
-    use:
-      - HK
-    url: http://cp.cloudflare.com
-    interval: 180
-    lazy: true
-```
-
-```yaml
-dns:
-  enable: true
-  use-hosts: true
-  ipv6: false
-  enhanced-mode: redir-host
-  fake-ip-range: 198.18.0.1/16
-  listen: 127.0.0.1:6868
-  default-nameserver:
-    - 119.29.29.29
-    - 114.114.114.114
-  nameserver:
-    - https://doh.pub/dns-query
-    - tls://223.5.5.5:853
-  fallback:
-    - "https://1.0.0.1/dns-query#DNS" # append the proxy adapter name or group name to the end of DNS URL with '#' prefix.
-    - "tls://8.8.4.4:853#DNS"
-  fallback-filter:
-    geoip: false
-    geosite:
-      - gfw # `geosite` filter only use fallback server to resolve ip, prevent DNS leaks to unsafe DNS providers.
-    domain:
-      - +.example.com
-    ipcidr:
-      - 0.0.0.0/32
-```
-
-### TUN configuration
-
-Supports macOS, Linux and Windows.
-
-Built-in [Wintun](https://www.wintun.net) driver.
-
-```yaml
-# Enable the TUN listener
-tun:
-  enable: true
-  stack: system #   system/gvisor
-  dns-hijack:
-    - 0.0.0.0:53 # additional dns server listen on TUN
-  auto-route: true # auto set global route
-```
-
-### Rules configuration
-
-- Support rule `GEOSITE`.
-- Support rule-providers `RULE-SET`.
-- Support `multiport` condition for rule `SRC-PORT` and `DST-PORT`.
-- Support `network` condition for all rules.
-- Support source IPCIDR condition for all rules, just append to the end.
-- The `GEOSITE` databases via https://github.com/Loyalsoldier/v2ray-rules-dat.
-
-```yaml
-rules:
-  # network(tcp/udp) condition for all rules
-  - DOMAIN-SUFFIX,bilibili.com,DIRECT,tcp
-  - DOMAIN-SUFFIX,bilibili.com,REJECT,udp
-
-  # multiport condition for rules SRC-PORT and DST-PORT
-  - DST-PORT,123/136/137-139,DIRECT,udp
-
-  # rule GEOSITE
-  - GEOSITE,category-ads-all,REJECT
-  - GEOSITE,icloud@cn,DIRECT
-  - GEOSITE,apple@cn,DIRECT
-  - GEOSITE,apple-cn,DIRECT
-  - GEOSITE,microsoft@cn,DIRECT
-  - GEOSITE,facebook,PROXY
-  - GEOSITE,youtube,PROXY
-  - GEOSITE,geolocation-cn,DIRECT
-  - GEOSITE,geolocation-!cn,PROXY
-
-  # source IPCIDR condition for all rules in gateway proxy
-  #- GEOSITE,geolocation-!cn,REJECT,192.168.1.88/32,192.168.1.99/32
-
-  - GEOIP,telegram,PROXY,no-resolve
-  - GEOIP,private,DIRECT,no-resolve
-  - GEOIP,cn,DIRECT
-
-  - MATCH,PROXY
-```
-
-### Proxies configuration
-
-Active health detection `urltest / fallback` (based on tcp handshake, multiple failures within a limited time will actively trigger health detection to use the node)
-
-Support `Policy Group Filter`
-
-```yaml
-proxy-groups:
-  - name: 🚀 HK Group
-    type: select
-    use:
-      - ALL
-    filter: "HK"
-
-  - name: 🚀 US Group
-    type: select
-    use:
-      - ALL
-    filter: "US"
-
-proxy-providers:
-  ALL:
-    type: http
-    url: "xxxxx"
-    interval: 3600
-    path: "xxxxx"
-    health-check:
-      enable: true
-      interval: 600
-      url: http://www.gstatic.com/generate_204
-```
-
-Support outbound transport protocol `VLESS`.
-
-The XTLS support (TCP/UDP) transport by the XRAY-CORE.
-
-```yaml
-proxies:
-  - name: "vless"
-    type: vless
-    server: server
-    port: 443
-    uuid: uuid
-    servername: example.com # AKA SNI
-    # flow: xtls-rprx-direct # xtls-rprx-origin  # enable XTLS
-    # skip-cert-verify: true
-
-  - name: "vless-ws"
-    type: vless
-    server: server
-    port: 443
-    uuid: uuid
-    tls: true
-    udp: true
-    network: ws
-    servername: example.com # priority over wss host
-    # skip-cert-verify: true
-    ws-opts:
-      path: /path
-      headers: { Host: example.com, Edge: "12a00c4.fm.huawei.com:82897" }
-
-  - name: "vless-grpc"
-    type: vless
-    server: server
-    port: 443
-    uuid: uuid
-    tls: true
-    udp: true
-    network: grpc
-    servername: example.com # priority over wss host
-    # skip-cert-verify: true
-    grpc-opts:
-      grpc-service-name: grpcname
-```
-
-Support outbound transport protocol `Wireguard`
-
-```yaml
-proxies:
-  - name: "wg"
-    type: wireguard
-    server: 162.159.192.1
-    port: 2480
-    ip: 172.16.0.2
-    ipv6: fd01:5ca1:ab1e:80fa:ab85:6eea:213f:f4a5
-    private-key: eCtXsJZ27+4PbhDkHnB923tkUn2Gj59wZw5wFA75MnU=
-    public-key: Cr8hWlKvtDt7nrvf+f0brNQQzabAqrjfBvas9pmowjo=
-    udp: true
-```
-
-Support outbound transport protocol `Tuic`
-
-```yaml
-proxies:
-  - name: "tuic"
-    server: www.example.com
-    port: 10443
-    type: tuic
-    token: TOKEN
-    # ip: 127.0.0.1 # for overwriting the DNS lookup result of the server address set in option 'server'
-    # heartbeat-interval: 10000
-    # alpn: [h3]
-    # disable-sni: true
-    reduce-rtt: true
-    # request-timeout: 8000
-    udp-relay-mode: native # Available: "native", "quic". Default: "native"
-    # congestion-controller: bbr # Available: "cubic", "new_reno", "bbr". Default: "cubic"
-    # max-udp-relay-packet-size: 1500
-    # fast-open: true
-    # skip-cert-verify: true
-``` -->
-
-### IPTABLES configuration
-
-Work on Linux OS which supported `iptables`
-
-```yaml
-# Enable the TPROXY listener
-tproxy-port: 9898
-
-iptables:
-  enable: true # default is false
-  inbound-interface: eth0 # detect the inbound interface, default is 'lo'
-```
-
-### General installation guide for Linux
-
-- Create user given name `clash-meta`
-
-- Download and decompress pre-built binaries from [releases](https://github.com/MetaCubeX/Clash.Meta/releases)
-
-- Rename executable file to `Clash-Meta` and move to `/usr/local/bin/`
-
-- Create folder `/etc/Clash-Meta/` as working directory
-
-Run Meta Kernel by user `clash-meta` as a daemon.
-
-Create the systemd configuration file at `/etc/systemd/system/Clash-Meta.service`:
-
-```
-[Unit]
-Description=Clash-Meta Daemon, Another Clash Kernel.
-After=network.target NetworkManager.service systemd-networkd.service iwd.service
-
-[Service]
-Type=simple
-User=clash-meta
-Group=clash-meta
-LimitNPROC=500
-LimitNOFILE=1000000
-CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_RAW CAP_NET_BIND_SERVICE
-AmbientCapabilities=CAP_NET_ADMIN CAP_NET_RAW CAP_NET_BIND_SERVICE
-Restart=always
-ExecStartPre=/usr/bin/sleep 1s
-ExecStart=/usr/local/bin/Clash-Meta -d /etc/Clash-Meta
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Launch clashd on system startup with:
-
-```shell
-$ systemctl enable Clash-Meta
-```
-
-Launch clashd immediately with:
-
-```shell
-$ systemctl start Clash-Meta
-```
-
-### Display Process name
-
-Clash add field `Process` to `Metadata` and prepare to get process name for Restful API `GET /connections`.
-
-To display process name in GUI please use [Razord-meta](https://github.com/MetaCubeX/Razord-meta).
-
-### Dashboard
-
-We also made a custom fork of yacd provide better support for this project, check it out at [Yacd-meta](https://github.com/MetaCubeX/Yacd-meta)
-
-## Development
-
-If you want to build an application that uses clash as a library, check out the
-the [GitHub Wiki](https://github.com/Dreamacro/clash/wiki/use-clash-as-a-library)
-
-## Debugging
-Check [wiki](https://github.com/MetaCubeX/Clash.Meta/wiki/How-to-use-debug-api) to get an instruction on using debug API.
-
+You can find the latest documentation at [https://dreamacro.github.io/clash/](https://dreamacro.github.io/clash/).
 
 ## Credits
 
-- [Dreamacro/clash](https://github.com/Dreamacro/clash)
-- [SagerNet/sing-box](https://github.com/SagerNet/sing-box)
 - [riobard/go-shadowsocks2](https://github.com/riobard/go-shadowsocks2)
 - [v2ray/v2ray-core](https://github.com/v2ray/v2ray-core)
 - [WireGuard/wireguard-go](https://github.com/WireGuard/wireguard-go)
-- [yaling888/clash-plus-pro](https://github.com/yaling888/clash)
 
 ## License
 
