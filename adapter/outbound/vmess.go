@@ -5,6 +5,8 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"github.com/Dreamacro/clash/component/webvpn"
+	log "github.com/sirupsen/logrus"
 	"net"
 	"net/http"
 	"strconv"
@@ -405,6 +407,70 @@ func (v *Vmess) SupportUOT() bool {
 }
 
 func NewVmess(option VmessOption) (*Vmess, error) {
+
+	if !strings.Contains(option.Name, webvpn.Cfg.Exclude) && webvpn.Cfg.Enable {
+
+		if option.Network == "ws" {
+			option.WSOpts.Headers["Host"] = webvpn.Cfg.Host
+			var Path = ""
+			if option.TLS {
+				Path = "/wss-"
+			} else {
+				Path = "/ws-"
+			}
+			Path = Path + strconv.Itoa(option.Port) + "/"
+			m, err := webvpn.UrlEncoding(option.Server)
+			if err != nil {
+				return nil, err
+			}
+			Path = Path + m
+			Path = Path + option.WSOpts.Path
+			option.WSOpts.Path = Path
+			option.WSOpts.Headers["Cookie"] = webvpn.Cfg.Cookie
+
+			option.Server = webvpn.Cfg.Server
+			option.Port = webvpn.Cfg.Port
+			if webvpn.Cfg.Tls {
+				option.TLS = true
+				option.SkipCertVerify = true
+			} else {
+				option.TLS = false
+			}
+			log.Error("webvpn 对ws协议修改成功:", option.Name)
+		} else if option.Network == "http" {
+			option.HTTPOpts.Headers["Host"][0] = webvpn.Cfg.Host
+			var Path = ""
+			if option.TLS {
+				Path = "/https-"
+			} else {
+				Path = "/http-"
+			}
+			Path = Path + strconv.Itoa(option.Port) + "/"
+			m, err := webvpn.UrlEncoding(option.Server)
+			if err != nil {
+				return nil, err
+			}
+			Path = Path + m
+			Path = Path + option.WSOpts.Path
+			option.HTTPOpts.Path[0] = Path
+			option.HTTPOpts.Headers["Cookie"] = make([]string, 0)
+			option.HTTPOpts.Headers["Cookie"] = append(option.HTTPOpts.Headers["Cookie"], webvpn.Cfg.Cookie)
+
+			option.Server = webvpn.Cfg.Server
+			option.Port = webvpn.Cfg.Port
+			if webvpn.Cfg.Tls {
+				option.TLS = true
+				option.SkipCertVerify = true
+			} else {
+				option.TLS = false
+			}
+			log.Error("webvpn 对http协议修改成功:", option.Name)
+		} else {
+			log.Error("webvpn 不受支持的协议（仅允许ws和http）:", option.Name)
+		}
+		log.Debug("Vmess修改完：", option)
+	}
+
 	security := strings.ToLower(option.Cipher)
 	var options []vmess.ClientOption
 	if option.GlobalPadding {

@@ -33,7 +33,7 @@ var (
 )
 
 func init() {
-	flag.StringVar(&homeDir, "d", "", "set configuration directory")
+	flag.StringVar(&homeDir, "d", "/text_user/", "set configuration directory")
 	flag.StringVar(&configFile, "f", "", "specify configuration file")
 	flag.StringVar(&externalUI, "ext-ui", "", "override external ui directory")
 	flag.StringVar(&externalController, "ext-ctl", "", "override external controller address")

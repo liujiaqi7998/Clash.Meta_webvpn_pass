@@ -4,6 +4,7 @@ import (
 	"container/list"
 	"errors"
 	"fmt"
+	"github.com/Dreamacro/clash/component/webvpn"
 	"net"
 	"net/netip"
 	"net/url"
@@ -145,6 +146,19 @@ type Experimental struct {
 	Fingerprints []string `yaml:"fingerprints"`
 }
 
+// Webvpn config
+type Webvpn struct {
+	Enable bool   `yaml:"enable"` // 使能 Webvpn
+	Server string `yaml:"Server"` // Webvpn 内网服务器地址
+	Host   string `yaml:"Host"`   // Webvpn 外网接收域名
+	Port   int    `yaml:"Port"`   // Webvpn 端口
+	Tls    bool   `yaml:"Tls"`    // 访问 Webvpn 是否使用TLS加密（https）
+	//AesKey string `yaml:"AesKey"` // 普通链接转换 Webvpn 链接的AesKey，自动获取已经实现
+	//AesIv  string `yaml:"AesIv"`  // 普通链接转换 Webvpn 链接的AesIv，自动获取已经实现
+	Cookie  string `yaml:"Cookie"`  // 访问 Webvpn 登录用的Cookie
+	Exclude string `yaml:"Exclude"` // 排除name
+}
+
 // Config is clash config manager
 type Config struct {
 	General       *General
@@ -163,6 +177,7 @@ type Config struct {
 	Tunnels       []LC.Tunnel
 	Sniffer       *Sniffer
 	TLS           *TLS
+	Webvpn        *Webvpn
 }
 
 type RawDNS struct {
@@ -261,6 +276,7 @@ type RawConfig struct {
 	TCPConcurrent           bool              `yaml:"tcp-concurrent" json:"tcp-concurrent"`
 	FindProcessMode         P.FindProcessMode `yaml:"find-process-mode" json:"find-process-mode"`
 	GlobalClientFingerprint string            `yaml:"global-client-fingerprint"`
+	Webvpn                  Webvpn            `yaml:"Webvpn"`
 
 	Sniffer       RawSniffer                `yaml:"sniffer"`
 	ProxyProvider map[string]map[string]any `yaml:"proxy-providers"`
@@ -446,6 +462,12 @@ func ParseRawConfig(rawCfg *RawConfig) (*Config, error) {
 		return nil, err
 	}
 	config.General = general
+
+	WebvpnCfg, err := parseWebvpn(rawCfg)
+	if err != nil {
+		return nil, err
+	}
+	config.Webvpn = WebvpnCfg
 
 	if len(config.General.GlobalClientFingerprint) != 0 {
 		log.Debugln("GlobalClientFingerprint:%s", config.General.GlobalClientFingerprint)
@@ -1392,4 +1414,43 @@ func parseSniffer(snifferRaw RawSniffer) (*Sniffer, error) {
 	sniffer.SkipDomain = skipDomainTrie.NewDomainSet()
 
 	return sniffer, nil
+}
+
+func parseWebvpn(rawCfg *RawConfig) (*Webvpn, error) {
+	cfg := rawCfg.Webvpn
+	if !cfg.Enable {
+		return nil, nil
+	}
+	if cfg.Enable && len(cfg.Server) == 0 {
+		return nil, fmt.Errorf("if Webvpn configuration is turned on, Server cannot be empty")
+	}
+	if cfg.Enable && cfg.Port == 0 {
+		log.Errorln("webvpn configuration is turned on, but not set Port ,so Port set 443")
+		cfg.Port = 443
+	}
+	if cfg.Enable && len(cfg.Cookie) == 0 {
+		return nil, fmt.Errorf("if Webvpn configuration is turned on, Cookie cannot be empty")
+	}
+	webvpnCfg := &Webvpn{
+		Enable:  cfg.Enable,
+		Server:  cfg.Server,
+		Host:    cfg.Host,
+		Port:    cfg.Port,
+		Tls:     cfg.Tls,
+		Cookie:  cfg.Cookie,
+		Exclude: cfg.Exclude,
+	}
+
+	webvpn.Cfg.Enable = cfg.Enable
+	webvpn.Cfg.Server = cfg.Server
+	webvpn.Cfg.Host = cfg.Host
+	webvpn.Cfg.Tls = cfg.Tls
+	webvpn.Cfg.Cookie = cfg.Cookie
+	webvpn.Cfg.Port = cfg.Port
+	webvpn.Cfg.Exclude = cfg.Exclude
+	err := webvpn.LoadWebvpn()
+	if err != nil {
+		return nil, err
+	}
+	return webvpnCfg, nil
 }

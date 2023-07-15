@@ -7,15 +7,14 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"io"
-	"net"
-	"net/http"
-	"strconv"
-
 	"github.com/Dreamacro/clash/component/dialer"
 	"github.com/Dreamacro/clash/component/proxydialer"
 	tlsC "github.com/Dreamacro/clash/component/tls"
 	C "github.com/Dreamacro/clash/constant"
+	"io"
+	"net"
+	"net/http"
+	"strconv"
 )
 
 type Http struct {
@@ -149,6 +148,34 @@ func (h *Http) shakeHand(metadata *C.Metadata, rw io.ReadWriter) error {
 }
 
 func NewHttp(option HttpOption) (*Http, error) {
+	/*if !strings.Contains(option.Name, webvpn.Cfg.Exclude) && webvpn.Cfg.Enable {
+
+		option.Server = webvpn.Cfg.Server
+		option.Port = webvpn.Cfg.Port
+		if webvpn.Cfg.Tls {
+			option.TLS = true
+			option.SkipCertVerify = true
+		} else {
+			option.TLS = false
+		}
+
+		option.Headers["Host"] = webvpn.Cfg.Host
+		var Path = ""
+		if option.TLS {
+			Path = "/https-"
+		} else {
+			Path = "/http-"
+		}
+		Path = Path + strconv.Itoa(option.Port) + "/"
+		m, err := webvpn.UrlEncoding(option.Server)
+		if err != nil {
+			return nil, err
+		}
+		Path = Path + m
+		Path = Path + option.WSOpts.Path
+		option.HTTPOpts.Path[0] = Path
+		option.Headers["Cookie"] = webvpn.Cfg.Cookie
+	}*/
 	var tlsConfig *tls.Config
 	if option.TLS {
 		sni := option.Server
